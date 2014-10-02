@@ -1,0 +1,15 @@
+This is a collection of useful tools for system recovery and whatnot. It is not intended to be as complete as something like Knoppix, but it's good for taking drive snapshots, testing memory and disks, etc.
+
+It includes:
+- TinyCore 4.4, including all wireless drivers
+- FreeDOS
+- memtest86+
+- x86test
+- Hardware Detection Tool
+
+And it weighs 32MB.
+
+It's also easy to add new systems and tools to - look at /boot/syslinux/syslinux.cfg for the current setup. Specifically, look at the TinyCore entries for examples of how to boot a linux system, memtest86+ or hdt for how to boot a stand-alone tool, and SeaTools or FreeDOS for how to boot a floppy disk image.
+
+Note: when installing this on a new stick, you need to edit /boot/syslinux/syslinux.cfg and change the tce=UUID= value to match the UUID of the stick you just installed it on.
+
