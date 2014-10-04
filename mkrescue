@@ -40,7 +40,7 @@ echo "Editing partition table"
 
 echo \
   "p o" \
-  "n p 1 - +64M" \
+  "n p 1 - +256M" \
   "n p 2 - +${isosize}M" \
   "n p 3 - - t 3 c" \
   "a 1 p w" \
@@ -52,14 +52,14 @@ dd if=/usr/share/syslinux/mbr.bin of="$dev"
 
 echo "Creating boot filesystem"
 # Format boot partition and copy files
-mkfs.ext2 -q -m 0 -L "rescue.boot" "$boot"
+mkfs.ext2 -q -m 0 -L "$label.boot" "$boot"
 mount "$boot" /tmp/$$/usb
-rsync -a boot tce /tmp/$$/usb
-extlinux --install -s /tmp/$$/usb/boot/syslinux
+rsync -a boot/ /tmp/$$/usb/
+extlinux --install -s /tmp/$$/usb/syslinux
 umount /tmp/$$/usb
 
-echo "Embedding ISO..."
-dd if="$iso" of="$embed" bs=4M
+#echo "Embedding ISO..."
+#dd if="$iso" of="$embed" bs=4M
 
 # echo "Converting isolinux to ext2linux..."
 # mkfs.ext2 -q -m 0 -L "rescue.iso" "$embed"
