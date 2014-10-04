@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Partition device as follows:
+# 64M boot partition, ext2
+#   syslinux, boot partition, tce, tinycore and other small tools
+# ??M rescue partition, iso9660
+#   embedded isohybrid image, size depends on image to be embedded
+# ??M data partition, vfat
+#   all remaining space
+
+set -e
+
+label="$1"
+dev="$2"
+iso="$3"
+
+boot="${dev}1"
+embed="${dev}2"
+data="${dev}3"
+
+isosize=$(du --apparent-size -BM "$iso" | cut -f1 | egrep -o '[0-9]+')
+isosize=$((isosize * 11 / 10))  # add 10% since we're changing filesystems
+
+cat <<EOF
+Temp dir: /tmp/$$
+ISO:      $iso (${isosize}M)
+Label:    $label
+Device:   $dev
+Boot:     $boot
+Embed:    $embed
+Data:     $data
+EOF
+
+read
+set -x
+
+mkdir -p /tmp/$$/{usb,iso}
+
+echo "Editing partition table"
+
+echo \
+  "p o" \
+  "n p 1 - +64M" \
+  "n p 2 - +${isosize}M" \
+  "n p 3 - - t 3 c" \
+  "a 1 p w" \
+  | sed -re 's/ +/\n/g; s/-//g;' \
+  | fdisk "$dev" >/dev/null
+
+echo "Writing master boot record"
+dd if=/usr/share/syslinux/mbr.bin of="$dev"
+
+echo "Creating boot filesystem"
+# Format boot partition and copy files
+mkfs.ext2 -q -m 0 -L "rescue.boot" "$boot"
+mount "$boot" /tmp/$$/usb
+rsync -a boot tce /tmp/$$/usb
+extlinux --install -s /tmp/$$/usb/boot/syslinux
+umount /tmp/$$/usb
+
+echo "Embedding ISO..."
+dd if="$iso" of="$embed" bs=4M
+
+# echo "Converting isolinux to ext2linux..."
+# mkfs.ext2 -q -m 0 -L "rescue.iso" "$embed"
+# mount "$iso" /tmp/$$/iso -oloop,ro
+# mount "$embed" /tmp/$$/usb
+# rsync -aPh /tmp/$$/iso/ /tmp/$$/usb/
+# isolinux=$(dirname $(find /tmp/$$/usb -name isolinux.bin))
+# extlinux --install -s "$isolinux"
+# find /tmp/$$/usb -name "syslinu.cfg" -delete
+# cp "$isolinux/isolinux.cfg" "$isolinux/syslinux.cfg"
+# umount /tmp/$$/usb
+# umount /tmp/$$/iso
+# tune2fs -E mount_opts=ro "$embed"
+
+echo "Creating data filesystem"
+mkfs.vfat -n "$label" -v "$data"
+
+echo "Done!"
+rm -rf /tmp/$$
