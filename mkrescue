@@ -12,37 +12,34 @@ set -e
 
 label="$1"
 dev="$2"
-iso="$3"
 
 boot="${dev}1"
-embed="${dev}2"
-data="${dev}3"
+data="${dev}2"
 
-isosize=$(du --apparent-size -BM "$iso" | cut -f1 | egrep -o '[0-9]+')
-isosize=$((isosize * 11 / 10))  # add 10% since we're changing filesystems
+bootsize=$(du -s --apparent-size -BM boot | cut -f1 | egrep -o '[0-9]+')
+bootsize=$((bootsize + 8))  # pad by 8MB just in case
 
 cat <<EOF
 Temp dir: /tmp/$$
-ISO:      $iso (${isosize}M)
 Label:    $label
 Device:   $dev
-Boot:     $boot
-Embed:    $embed
+Boot:     $boot (${bootsize}M)
 Data:     $data
 EOF
+
+echo -n "Press enter..."
 
 read
 set -x
 
-mkdir -p /tmp/$$/{usb,iso}
+mkdir -p /tmp/$$
 
 echo "Editing partition table"
 
 echo \
   "p o" \
-  "n p 1 - +256M" \
-  "n p 2 - +${isosize}M" \
-  "n p 3 - - t 3 c" \
+  "n p 1 - +${bootsize}M" \
+  "n p 2 - - t 2 c" \
   "a 1 p w" \
   | sed -re 's/ +/\n/g; s/-//g;' \
   | fdisk "$dev" >/dev/null
@@ -53,29 +50,13 @@ dd if=/usr/share/syslinux/mbr.bin of="$dev"
 echo "Creating boot filesystem"
 # Format boot partition and copy files
 mkfs.ext2 -q -m 0 -L "$label.boot" "$boot"
-mount "$boot" /tmp/$$/usb
-rsync -a boot/ /tmp/$$/usb/
-extlinux --install -s /tmp/$$/usb/syslinux
-umount /tmp/$$/usb
-
-#echo "Embedding ISO..."
-#dd if="$iso" of="$embed" bs=4M
-
-# echo "Converting isolinux to ext2linux..."
-# mkfs.ext2 -q -m 0 -L "rescue.iso" "$embed"
-# mount "$iso" /tmp/$$/iso -oloop,ro
-# mount "$embed" /tmp/$$/usb
-# rsync -aPh /tmp/$$/iso/ /tmp/$$/usb/
-# isolinux=$(dirname $(find /tmp/$$/usb -name isolinux.bin))
-# extlinux --install -s "$isolinux"
-# find /tmp/$$/usb -name "syslinu.cfg" -delete
-# cp "$isolinux/isolinux.cfg" "$isolinux/syslinux.cfg"
-# umount /tmp/$$/usb
-# umount /tmp/$$/iso
-# tune2fs -E mount_opts=ro "$embed"
+mount "$boot" /tmp/$$
+rsync -a boot/ /tmp/$$/
+extlinux --install -s /tmp/$$/syslinux
+umount /tmp/$$
 
 echo "Creating data filesystem"
-mkfs.vfat -n "$label" -v "$data"
+mkfs.vfat -n "$label" "$data"
 
 echo "Done!"
 rm -rf /tmp/$$
