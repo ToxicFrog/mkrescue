@@ -14,17 +14,12 @@ label="$1"
 dev="$2"
 
 boot="${dev}1"
-data="${dev}2"
-
-bootsize=$(du -s --apparent-size -BM boot | cut -f1 | egrep -o '[0-9]+')
-bootsize=$((bootsize + 8))  # pad by 8MB just in case
 
 cat <<EOF
 Temp dir: /tmp/$$
 Label:    $label
 Device:   $dev
-Boot:     $boot (${bootsize}M)
-Data:     $data
+Boot:     $boot
 EOF
 
 echo -n "Press enter..."
@@ -37,26 +32,20 @@ mkdir -p /tmp/$$
 echo "Editing partition table"
 
 echo \
-  "p o" \
-  "n p 1 - +${bootsize}M" \
-  "n p 2 - - t 2 c" \
-  "a 1 p w" \
+  "o n p 1 - - t c a p w" \
   | sed -re 's/ +/\n/g; s/-//g;' \
   | fdisk "$dev" >/dev/null
 
 echo "Writing master boot record"
 dd if=/usr/share/syslinux/mbr.bin of="$dev"
 
-echo "Creating boot filesystem"
+echo "Creating filesystem"
 # Format boot partition and copy files
-mkfs.ext2 -q -m 0 -L "$label.boot" "$boot"
+mkfs.vfat -n "$label" "$boot"
 mount "$boot" /tmp/$$
-rsync -a boot/ /tmp/$$/
-extlinux --install -s /tmp/$$/syslinux
+rsync -r boot /tmp/$$/
 umount /tmp/$$
-
-echo "Creating data filesystem"
-mkfs.vfat -n "$label" "$data"
+syslinux --install --directory /boot/syslinux "$boot"
 
 echo "Done!"
 rm -rf /tmp/$$
