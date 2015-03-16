@@ -1,25 +1,51 @@
 #!/bin/bash
 
-# Partition device as follows:
-# 64M boot partition, ext2
-#   syslinux, boot partition, tce, tinycore and other small tools
-# ??M rescue partition, iso9660
-#   embedded isohybrid image, size depends on image to be embedded
-# ??M data partition, vfat
-#   all remaining space
+# Set up a rescue USB stick.
+# Partition it as one large partition, vfat, with a /boot directory containing
+# all the rescue tools.
 
 set -e
+trap -- cleanup EXIT
 
-label="$1"
-dev="$2"
+function cleanup() {
+  echo "Cleaning up..."
+  mount | fgrep -q /tmp/$$ && umount /tmp/$$
+  [[ $image_file ]] && losetup -d "$dev"
+  rm -rf /tmp/$$
+}
 
-boot="${dev}1"
+function help() {
+  modules="$(ls modules | xargs echo)"
+  cat <<EOF
+mkrescue -- make a rescue USB stick.
+Usage: mkrescue [-i] [-l label] /dev/foo modules...
+  -i       -- device is an image file, automanage with losetup
+  -l label -- give filesystem this label; default "rescue"
+  /dev/foo -- device or image file to install onto
+  modules  -- modules to install, available ones are:
+    $modules
+EOF
+}
+
+label=rescue
+
+while true; do
+  case "$1" in
+    -i) image_file=true; shift;;
+    -l) shift; label="$1"; shift;;
+    -h) help; exit 0;;
+    *) break;;
+  esac
+done
+
+dev="$1"; shift
+label=$(echo "$label" | tr [:lower:] [:upper:])
 
 cat <<EOF
 Temp dir: /tmp/$$
 Label:    $label
 Device:   $dev
-Boot:     $boot
+Modules:  $@
 EOF
 
 echo -n "Press enter..."
@@ -27,25 +53,33 @@ echo -n "Press enter..."
 read
 set -x
 
+echo "Editing partition table"
+echo '2048;+;0C;*;' | sfdisk --quiet -uS --force "$dev" >/dev/null 2>&1
+
+if [[ $image_file ]]; then
+  echo "Setting up loop device for image file"
+  losetup -P -f "$dev"
+  dev=$(losetup -j "$dev" --raw -ONAME --noheadings | head -n1)
+  boot="${dev}p1"
+else
+  boot="${dev}1"
+fi
+
 mkdir -p /tmp/$$
 
-echo "Editing partition table"
-
-echo \
-  "o n p 1 - - t c a p w" \
-  | sed -re 's/ +/\n/g; s/-//g;' \
-  | fdisk "$dev" >/dev/null
-
-echo "Writing master boot record"
+echo "Writing master boot record to $dev"
 dd if=mbr.bin of="$dev" status=none
 
-echo "Creating filesystem"
-# Format boot partition and copy files
+echo "Creating filesystem '$label' on $boot"
 mkfs.vfat -n "$label" "$boot"
+
+echo "Copying files"
 mount "$boot" /tmp/$$
-rsync -r boot /tmp/$$/
+rsync -r boot/ /tmp/$$/boot/
 umount /tmp/$$
+
+echo "Installing bootloader"
 syslinux --install --directory /boot/syslinux "$boot"
 
 echo "Done!"
-rm -rf /tmp/$$
+# Cleanup code will handle removing tmp directory and unlosetuping
