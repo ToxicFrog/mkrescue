@@ -37,7 +37,7 @@ echo \
   | fdisk "$dev" >/dev/null
 
 echo "Writing master boot record"
-dd if=/usr/share/syslinux/mbr.bin of="$dev"
+dd if=mbr.bin of="$dev" status=none
 
 echo "Creating filesystem"
 # Format boot partition and copy files
