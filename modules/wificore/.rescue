@@ -1,0 +1,23 @@
+source tinycore/common
+
+function describe() {
+  echo -n "TinyCore Linux 6.1 (with wifi support)"
+}
+
+function pre() {
+  download_kernel
+  download_packages "modules/$module/tce/wificore.lst"
+}
+
+function dest() {
+  echo "core"
+}
+
+function boot() {
+  cat <<EOF
+label wificore
+  menu label TinyCore Linux 6.1 (with wifi support)
+  kernel /boot/core/vmlinuz
+  append initrd=/boot/core/core.gz tce=LABEL=$label/boot/core/tce lst=wificore.lst waitusb=5
+EOF
+}

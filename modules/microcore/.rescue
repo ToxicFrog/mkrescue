@@ -1,0 +1,22 @@
+source tinycore/common
+
+function describe() {
+  echo -n "TinyCore Linux 6.1 (MicroCore command line only)"
+}
+
+function pre() {
+  download_kernel
+}
+
+function dest() {
+  echo "core"
+}
+
+function boot() {
+  cat <<EOF
+label microcore
+  menu label TinyCore Linux 6.1 (MicroCore command line only)
+  kernel /boot/core/vmlinuz
+  append initrd=/boot/core/core.gz tce=LABEL=$label/boot/core/tce lst=microcore.lst waitusb=5
+EOF
+}

@@ -5,26 +5,55 @@
 # all the rescue tools.
 
 set -e
-trap -- cleanup EXIT
+trap -- 'echo "Unexpected error! Aborting!"; cleanup' EXIT
+
+function describe() { return 0; }
+function clean() { return 0; }
+function pre() { return 0; }
+function dest() { echo "$module"; }
+function boot() { return 0; }
+function post() { return 0; }
+
+function status() {
+  echo "[$module] $*"
+}
 
 function cleanup() {
-  echo "Cleaning up..."
   mount | fgrep -q /tmp/$$ && umount /tmp/$$
   [[ $image_file ]] && losetup -d "$dev"
   rm -rf /tmp/$$
 }
 
+function die_happy() {
+  trap -- cleanup EXIT
+  exit 0
+}
+
+function module() {
+  module=$1; shift
+  (
+    export dev module boot label
+    export tmp="/tmp/$$"
+    source "modules/$module/.rescue" && "$@"
+  )
+}
+
 function help() {
-  modules="$(ls modules | xargs echo)"
   cat <<EOF
 mkrescue -- make a rescue USB stick.
-Usage: mkrescue [-i] [-l label] /dev/foo modules...
+Usage: mkrescue [options] modules...
   -i       -- device is an image file, automanage with losetup
   -l label -- give filesystem this label; default "rescue"
-  /dev/foo -- device or image file to install onto
+  -u       -- update already mounted stick, don't partition/format
+  -c       -- tell the modules to "clean" themselves first
+  -D       -- debug; print commands being executed
+  -m cmd   -- execute command on all modules
+  -d dest  -- device or image file to install onto
   modules  -- modules to install, available ones are:
-    $modules
 EOF
+  for module in $(ls modules); do
+    printf "    %12s -- %s\n" "$module" "$(module $module describe)"
+  done
 }
 
 label=rescue
@@ -32,14 +61,35 @@ label=rescue
 while true; do
   case "$1" in
     -i) image_file=true; shift;;
+    -u) update=true; shift;;
+    -D) debug=true; shift;;
+    -c) clean=true; shift;;
+    -m) shift; module_command="$1"; shift;;
     -l) shift; label="$1"; shift;;
-    -h) help; exit 0;;
+    -h) help; die_happy;;
+    -d) shift; dev="$1"; shift;;
     *) break;;
   esac
 done
 
-dev="$1"; shift
+if [[ $module_command ]]; then
+  if [[ $debug ]]; then
+    set -x
+  fi
+
+  for module in "$@"; do
+    module "$module" "$module_command"
+  done
+  die_happy
+fi
+
 label=$(echo "$label" | tr [:lower:] [:upper:])
+
+if [[ $update && $image_file ]]; then
+  echo "-u and -i can't be specified at the same time"
+  echo "mount the image and use -u on its own"
+  exit 1
+fi
 
 cat <<EOF
 Temp dir: /tmp/$$
@@ -49,37 +99,82 @@ Modules:  $@
 EOF
 
 echo -n "Press enter..."
-
 read
-set -x
 
-echo "Editing partition table"
-echo '2048;+;0C;*;' | sfdisk --quiet -uS --force "$dev" >/dev/null 2>&1
+function partition() {
+  echo "Editing partition table"
+  echo '2048;+;0C;*;' | sfdisk --quiet -uS --force "$dev" >/dev/null 2>&1
+}
 
-if [[ $image_file ]]; then
-  echo "Setting up loop device for image file"
-  losetup -P -f "$dev"
-  dev=$(losetup -j "$dev" --raw -ONAME --noheadings | head -n1)
-  boot="${dev}p1"
-else
-  boot="${dev}1"
+function prepare_boot_device() {
+  if [[ $image_file ]]; then
+    echo "Setting up loop device for image file"
+    losetup -P -f "$dev"
+    dev=$(losetup -j "$dev" --raw -ONAME --noheadings | head -n1)
+    boot="${dev}p1"
+  else
+    boot="${dev}1"
+  fi
+}
+
+function write_mbr() {
+  echo "Writing master boot record to $dev"
+  dd if=mbr.bin of="$dev" status=none
+}
+
+function write_filesystem() {
+  echo "Creating filesystem '$label' on $boot"
+  mkfs.vfat -n "$label" "$boot"
+  mount "$boot" /tmp/$$
+}
+
+function install_core() {
+  echo "Copying core configuration"
+  rm -rf /tmp/$$/boot
+  rsync -rL boot/ /tmp/$$/boot/
+}
+
+function install_module() {
+  module=$1
+  echo "Copying module: $module"
+  module $module pre
+  rsync -rL "modules/$module/" "/tmp/$$/boot/$(module $module dest)/"
+  (echo -e "\n# Module: $module" && module $module boot) \
+    >> /tmp/$$/boot/syslinux/syslinux.cfg
+  module $module post
+}
+
+function install_bootloader() {
+  echo "Installing bootloader"
+  umount /tmp/$$
+  syslinux --install --directory /boot/syslinux "$boot"
+}
+
+if [[ $debug ]]; then
+  set -x
 fi
 
-mkdir -p /tmp/$$
+if [[ $update ]]; then
+  ln -rs "$dev" /tmp/$$
+else
+  mkdir -p /tmp/$$
+  partition
+  prepare_boot_device
+  write_mbr
+  write_filesystem
+fi
 
-echo "Writing master boot record to $dev"
-dd if=mbr.bin of="$dev" status=none
+install_core
+for module in "$@"; do
+  [[ $clean ]] && module $module clean
+  install_module $module
+done
+find /tmp/$$/
+cat /tmp/$$/boot/syslinux/syslinux.cfg
 
-echo "Creating filesystem '$label' on $boot"
-mkfs.vfat -n "$label" "$boot"
-
-echo "Copying files"
-mount "$boot" /tmp/$$
-rsync -r boot/ /tmp/$$/boot/
-umount /tmp/$$
-
-echo "Installing bootloader"
-syslinux --install --directory /boot/syslinux "$boot"
+if [[ ! $update ]]; then
+  install_bootloader
+fi
 
 echo "Done!"
-# Cleanup code will handle removing tmp directory and unlosetuping
+die_happy

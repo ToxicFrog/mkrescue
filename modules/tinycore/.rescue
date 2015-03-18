@@ -1,0 +1,23 @@
+source tinycore/common
+
+function describe() {
+  echo -n "TinyCore Linux 6.1"
+}
+
+function pre() {
+  download_kernel
+  download_packages "modules/$module/tce/tinycore.lst"
+}
+
+function dest() {
+  echo "core"
+}
+
+function boot() {
+  cat <<EOF
+label tinycore
+  menu label TinyCore Linux 6.1
+  kernel /boot/core/vmlinuz
+  append initrd=/boot/core/core.gz tce=LABEL=$label/boot/core/tce lst=tinycore.lst waitusb=5
+EOF
+}

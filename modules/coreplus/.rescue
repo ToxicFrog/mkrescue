@@ -1,0 +1,23 @@
+source tinycore/common
+
+function describe() {
+  echo -n "CorePlus installer for TinyCore Linux 6.1"
+}
+
+function pre() {
+  download_kernel
+  download_packages "modules/$module/tce/coreplus.lst"
+}
+
+function dest() {
+  echo "core"
+}
+
+function boot() {
+  cat <<EOF
+label coreplus
+  menu label CorePlus installer for TinyCore Linux 6.1
+  kernel /boot/core/vmlinuz
+  append initrd=/boot/core/core.gz tce=LABEL=$label/boot/core/tce lst=coreplus.lst waitusb=5
+EOF
+}
