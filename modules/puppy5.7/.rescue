@@ -1,0 +1,32 @@
+function describe() {
+  echo -n "Puppy Linux 5.7 'Slacko' (based on Slackware)"
+}
+
+function isoextract() {
+  local iso=$1; shift
+  for file in "$@"; do
+    isoinfo -R -i "$iso" -x "/$file" > "modules/$module/$(basename $file)"
+  done
+}
+
+function pre() {
+  [[ -f modules/$module/vmlinuz
+  && -f modules/$module/initrd.gz
+  && -f modules/$module/puppy_slacko_5.7.sfs ]] && return 0
+  status "Downloading Puppy 5.7 ISO"
+  wget -c -O puppy-5.7.iso "http://distro.ibiblio.org/puppylinux/puppy-slacko-5.7/slacko-5.7-NO-pae.iso"
+  status "Extracting boot files"
+  isoextract puppy-5.7.iso initrd.gz vmlinuz puppy_slacko_5.7.sfs
+}
+
+function boot() {
+  cat <<EOF
+F2 /boot/puppy/help.msg
+F3 /boot/puppy/help2.msg
+
+label puppy
+  menu label Puppy Linux 5.7
+  kernel /boot/puppy5.7/vmlinuz
+  append initrd=/boot/puppy5.7/initrd.gz psubdir=boot/puppy5.7 psubok=TRUE
+EOF
+}

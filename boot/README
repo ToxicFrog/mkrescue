@@ -13,6 +13,8 @@ As optional modules, you can also install:
 - TinyCore Linux 6.1 (16MB)
 - TinyCore Linux 6.1 + wifi support (61MB)
 - CorePlus Linux Installer 6.1 (75MB)
+- Puppy Linux 5.7 (161MB)
+- Puppy Linux 6.0 (198MB)
 
 Note that the first two do not have any support for wifi connections, although it can be loaded after boot if you have a working wired connection.
 
@@ -22,7 +24,5 @@ These modules will download additional components the first time they're install
 
 and it will download them but do nothing else.
 
-Adding new systems and tools is easy. Small things can go in the core; look at /boot/syslinux/syslinux.cfg for the current setup. Larger things should be optional modules; look in modules/ for examples. The syslinux configs for these modules are drawn from modules/*/.syslinux.
-
-Note: when installing this on a new stick, you need to edit /boot/syslinux/syslinux.cfg and change the tce=UUID= value to match the UUID of the stick you just installed it on.
+Adding new systems and tools is easy. Small things can go in the core; look at /boot/syslinux/syslinux.cfg for the current setup. Larger things should be optional modules; look in modules/ for examples, specifically at the .rescue files in those modules, which contains module-specific configs.
 
