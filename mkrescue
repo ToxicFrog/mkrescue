@@ -32,8 +32,9 @@ function die_happy() {
 function module() {
   module=$1; shift
   (
-    export dev module boot label
-    export tmp="/tmp/$$"
+    #export dev module boot label
+    #export tmp="/tmp/$$"
+    export module label
     source "modules/$module/.rescue" && "$@"
   )
 }
