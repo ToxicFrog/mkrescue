@@ -73,6 +73,10 @@ while true; do
   esac
 done
 
+if [[ "$*" == "all" ]]; then
+  set -- $(ls modules)
+fi
+
 if [[ $module_command ]]; then
   if [[ $debug ]]; then
     set -x
