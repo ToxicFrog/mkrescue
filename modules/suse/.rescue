@@ -1,0 +1,44 @@
+SUSE=http://download.opensuse.org/distribution/openSUSE-current/repo/oss/boot/
+
+function describe() {
+  echo -n "OpenSUSE netinstaller"
+}
+
+function clean() {
+  rm -rf "modules/$module/"{linux,initrd}{32,64}
+}
+
+function pre() {
+  [[ -f modules/$module/vmlinuz
+  && -f modules/$module/initrd.gz ]] && return 0
+  status "Downloading OpenSUSE netinstaller (32-bit)"
+  wget -c -O "modules/$module/linux32" "$SUSE/i386/loader/linux"
+  wget -c -O "modules/$module/initrd32" "$SUSE/i386/loader/initrd"
+  status "Downloading OpenSUSE netinstaller (64-bit)"
+  wget -c -O "modules/$module/linux64" "$SUSE/x86_64/loader/linux"
+  wget -c -O "modules/$module/initrd64" "$SUSE/x86_64/loader/initrd"
+}
+
+function boot() {
+  cat <<EOF
+label suse32
+  menu label OpenSUSE Network Installer (32-bit)
+  kernel /boot/suse/linux32
+  append initrd=/boot/suse/initrd32 showopts
+
+label suse64
+  menu label OpenSUSE Network Installer (64-bit)
+  kernel /boot/suse/linux64
+  append initrd=/boot/suse/initrd64 showopts
+
+label suse32rescue
+  menu label OpenSUSE Rescue Mode (32-bit)
+  kernel /boot/suse/linux32
+  append initrd=/boot/suse/initrd32 showopts rescue=1
+
+label suse64rescue
+  menu label OpenSUSE Rescue Mode (64-bit)
+  kernel /boot/suse/linux64
+  append initrd=/boot/suse/initrd64 showopts rescue=1
+EOF
+}
