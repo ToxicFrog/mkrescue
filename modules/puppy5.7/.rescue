@@ -19,11 +19,12 @@ function pre() {
   isoextract puppy-5.7.iso initrd.gz vmlinuz puppy_slacko_5.7.sfs
 }
 
+function clean() {
+  rm -rf puppy-5.7.iso "modules/$module/"{vmlinuz,initrd.gz,puppy_slacko_5.7.sfs}
+}
+
 function boot() {
   cat <<EOF
-F2 /boot/puppy/help.msg
-F3 /boot/puppy/help2.msg
-
 label puppy
   menu label Puppy Linux 5.7
   kernel /boot/puppy5.7/vmlinuz

@@ -20,11 +20,12 @@ function pre() {
   isoextract puppy-6.0.iso initrd.gz vmlinuz puppy_tahr_6.0.sfs zdrv_tahr_6.0.sfs
 }
 
+function clean() {
+  rm -rf puppy-6.0.iso "modules/$module/"{vmlinuz,initrd.gz,puppy_slacko_6.0.sfs}
+}
+
 function boot() {
   cat <<EOF
-F2 /boot/puppy/help.msg
-F3 /boot/puppy/help2.msg
-
 label puppy
   menu label Puppy Linux 6.0
   kernel /boot/puppy6.0/vmlinuz
