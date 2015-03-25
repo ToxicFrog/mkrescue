@@ -5,6 +5,7 @@ The "core" contains:
 - x86test
 - Hardware Detection Tool
 - FreeDOS
+- HDAT2
 
 This weighs in at about 3.5MB, suitable even for tiny USB sticks and flash cards.
 
