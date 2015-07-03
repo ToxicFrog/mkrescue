@@ -134,14 +134,14 @@ function write_filesystem() {
 }
 
 function install_core() {
-  echo "Copying core configuration"
+  echo "Installing core configuration"
   rm -rf /tmp/$$/boot
   rsync -rL boot/ /tmp/$$/boot/
 }
 
 function install_module() {
   module=$1
-  echo "Copying module: $module"
+  echo "Installing module: $module"
   module $module pre
   rsync -rL "modules/$module/" "/tmp/$$/boot/$(module $module dest)/"
   (echo -e "\n# Module: $module" && module $module boot) \
