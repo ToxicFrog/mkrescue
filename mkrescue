@@ -15,10 +15,14 @@ trap -- 'echo "Unexpected error! Aborting!"; cleanup' EXIT
 
 # Default implementations of module functions.
 function describe() { echo -n "<description missing>"; }
-function clean() { rm -rf "$cachedir/$module"; }
+function clean() {
+  status "Cleaning $cachedir"
+  rm -rf "$cachedir"
+}
 function pre() { return 0; }
 function dest() { echo "$module"; }
 function install() {
+  status "Installing into $bootdir/$(module $module dest)/"
   rsync -rL "$cachedir/" "$bootdir/$(module $module dest)/"
 }
 function boot() { return 0; }
