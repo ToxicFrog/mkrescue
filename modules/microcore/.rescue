@@ -1,4 +1,4 @@
-source tinycore/common
+source $libdir/.libtinycore
 
 function describe() {
   echo -n "TinyCore Linux 6.1 (MicroCore command line only)"

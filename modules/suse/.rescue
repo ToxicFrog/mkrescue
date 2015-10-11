@@ -4,19 +4,13 @@ function describe() {
   echo -n "OpenSUSE netinstaller"
 }
 
-function clean() {
-  rm -rf "modules/$module/"{linux,initrd}{32,64}
-}
-
 function pre() {
-  [[ -f modules/$module/vmlinuz
-  && -f modules/$module/initrd.gz ]] && return 0
   status "Downloading OpenSUSE netinstaller (32-bit)"
-  wget -c -O "modules/$module/linux32" "$SUSE/boot/i386/loader/linux"
-  wget -c -O "modules/$module/initrd32" "$SUSE/boot/i386/loader/initrd"
+  wget -nv -c -O "$cachedir/linux32" "$SUSE/boot/i386/loader/linux"
+  wget -nv -c -O "$cachedir/initrd32" "$SUSE/boot/i386/loader/initrd"
   status "Downloading OpenSUSE netinstaller (64-bit)"
-  wget -c -O "modules/$module/linux64" "$SUSE/boot/x86_64/loader/linux"
-  wget -c -O "modules/$module/initrd64" "$SUSE/boot/x86_64/loader/initrd"
+  wget -nv -c -O "$cachedir/linux64" "$SUSE/boot/x86_64/loader/linux"
+  wget -nv -c -O "$cachedir/initrd64" "$SUSE/boot/x86_64/loader/initrd"
 }
 
 function boot() {

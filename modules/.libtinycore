@@ -1,0 +1,46 @@
+DIST=http://distro.ibiblio.org/tinycorelinux/6.x/x86/release/distribution_files
+TCZ=http://distro.ibiblio.org/tinycorelinux/6.x/x86/tcz
+KERNEL=3.16.6-tinycore
+
+function download_kernel() {
+  status "Checking boot files"
+  mkdir -p "$tmpdir/tinycore"
+  [[ -f "$cachedir/vmlinuz" ]] || {
+    echo "  -> kernel"
+    wget -nv -nc -P "$tmpdir" "$DIST/vmlinuz"
+    cp "$tmpdir/vmlinuz" "$cachedir"
+  }
+  [[ -f "$cachedir/core.gz" ]] || {
+    echo "  -> initrd"
+    wget -nv -nc -P "$tmpdir" "$DIST/core.gz"
+    cp "$tmpdir/core.gz" "$cachedir"
+  }
+}
+
+function download_package() {
+  local package="${1/KERNEL/$KERNEL}"
+  local indent="$2"
+  local dst="$cachedir/tce/optional"
+  local tmp="$tmpdir/tinycore/tcz"
+
+  [[ -f "$dst/$package" ]] && return 0;
+  echo "$indent  -> $package"
+  wget -q -nc -P "$tmp" "$TCZ/$package"{,.md5.txt}
+  cp -f "$tmp/$package"{,.md5.txt} "$dst/"
+
+  if wget -q -nc -P "$tmp" "$TCZ/$package.dep" >/dev/null; then
+    cp -f "$tmp/$package.dep" "$dst/"
+    for dep in $(cat "$tmp/$package.dep"); do
+      download_package "$dep" "  $indent"
+    done
+  fi
+}
+
+function download_packages() {
+  status "Checking components"
+  mkdir -p "$tmpdir/tinycore/tcz"
+  mkdir -p "$cachedir/tce/optional"
+  for package in $(cat $1); do
+    download_package "$package" ""
+  done
+}

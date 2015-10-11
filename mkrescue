@@ -4,13 +4,23 @@
 # Partition it as one large partition, vfat, with a /boot directory containing
 # all the rescue tools.
 
+label=rescue
+libdir="$(dirname $0)/modules"
+tmpdir="/tmp/$$.tmp"
+mntdir="/tmp/$$.mnt"
+cachedir="$HOME/.cache/mkrescue"
+
 set -e
 trap -- 'echo "Unexpected error! Aborting!"; cleanup' EXIT
 
-function describe() { return 0; }
-function clean() { return 0; }
+# Default implementations of module functions.
+function describe() { echo -n "<description missing>"; }
+function clean() { rm -rf "$cachedir/$module"; }
 function pre() { return 0; }
 function dest() { echo "$module"; }
+function install() {
+  rsync -rL "$cachedir/" "$bootdir/$(module $module dest)/"
+}
 function boot() { return 0; }
 function post() { return 0; }
 
@@ -19,9 +29,11 @@ function status() {
 }
 
 function cleanup() {
-  mount | fgrep -q /tmp/$$ && umount /tmp/$$
-  [[ $image_file ]] && losetup -d "$dev"
-  rm -rf /tmp/$$
+  mount | fgrep -q "$mntdir" && umount "$mntdir"
+  if [[ $image_file ]]; then
+    losetup -d $(losetup -j $image_file | cut -d: -f1)
+  fi
+  rm -rf "$mntdir" "$tmpdir"
 }
 
 function die_happy() {
@@ -31,11 +43,15 @@ function die_happy() {
 
 function module() {
   module=$1; shift
+  bootdir="$mntdir/boot"
+  if [[ ! -d "$cachedir/$module" ]]; then
+    mkdir -p "$cachedir"
+    rsync -r "$libdir/$module/" "$cachedir/$module/"
+  fi
   (
-    #export dev module boot label
-    #export tmp="/tmp/$$"
-    export module label
-    source "modules/$module/.rescue" && "$@"
+    cachedir="$cachedir/$module"
+    export module label cachedir tmpdir bootdir libdir
+    source "$cachedir/.rescue" && "$@"
   )
 }
 
@@ -44,20 +60,19 @@ function help() {
 mkrescue -- make a rescue USB stick.
 Usage: mkrescue [options] modules...
   -i       -- device is an image file, automanage with losetup
-  -l label -- give filesystem this label; default "rescue"
+  -l label -- give filesystem this label; default $label
   -u       -- update already mounted stick, don't partition/format
+  -C dir   -- use dir as cache directory, default $cachedir
   -c       -- tell the modules to "clean" themselves first
   -D       -- debug; print commands being executed
   -m cmd   -- execute command on all modules
   -d dest  -- device or image file to install onto
   modules  -- modules to install, available ones are:
 EOF
-  for module in $(ls modules); do
+  for module in $(ls $libdir); do
     printf "    %12s -- %s\n" "$module" "$(module $module describe)"
   done
 }
-
-label=rescue
 
 while true; do
   case "$1" in
@@ -65,16 +80,22 @@ while true; do
     -u) update=true; shift;;
     -D) debug=true; shift;;
     -c) clean=true; shift;;
+    -C) cachedir="$1"; shift;;
     -m) shift; module_command="$1"; shift;;
     -l) shift; label="$1"; shift;;
-    -h) help; die_happy;;
+    -h) show_help=true; shift;;
     -d) shift; dev="$1"; shift;;
     *) break;;
   esac
 done
 
+if [[ $show_help ]]; then
+  help
+  die_happy
+fi
+
 if [[ "$*" == "all" ]]; then
-  set -- $(ls modules)
+  set -- $(ls $libdir)
 fi
 
 if [[ $module_command ]]; then
@@ -97,14 +118,20 @@ if [[ $update && $image_file ]]; then
 fi
 
 cat <<EOF
-Temp dir: /tmp/$$
-Label:    $label
-Device:   $dev
-Modules:  $@
+Temp dir:  $tmpdir
+Mount dir: $mntdir
+Cache dir: $cachedir
+Lib dir:   $libdir
+Label:     $label
+Device:    $dev
+Modules:   $@
 EOF
 
 echo -n "Press enter..."
 read
+
+mkdir -p "$tmpdir"
+mkdir -p "$cachedir"
 
 function partition() {
   echo "Editing partition table"
@@ -114,6 +141,7 @@ function partition() {
 function prepare_boot_device() {
   if [[ $image_file ]]; then
     echo "Setting up loop device for image file"
+    image_file="$dev"
     losetup -P -f "$dev"
     dev=$(losetup -j "$dev" --raw -ONAME --noheadings | head -n1)
     boot="${dev}p1"
@@ -130,28 +158,26 @@ function write_mbr() {
 function write_filesystem() {
   echo "Creating filesystem '$label' on $boot"
   mkfs.vfat -n "$label" "$boot"
-  mount "$boot" /tmp/$$
+  mount "$boot" "$mntdir"
 }
 
 function install_core() {
-  echo "Installing core configuration"
-  rm -rf /tmp/$$/boot
-  rsync -rL boot/ /tmp/$$/boot/
+  rsync -rL --delete "$libdir/.boot/" "$mntdir/boot/"
 }
 
 function install_module() {
   module=$1
   echo "Installing module: $module"
   module $module pre
-  rsync -rL "modules/$module/" "/tmp/$$/boot/$(module $module dest)/"
+  module $module install
   (echo -e "\n# Module: $module" && module $module boot) \
-    >> /tmp/$$/boot/syslinux/syslinux.cfg
+    >> "$mntdir/boot/syslinux/syslinux.cfg"
   module $module post
 }
 
 function install_bootloader() {
   echo "Installing bootloader"
-  umount /tmp/$$
+  umount "$mntdir"
   syslinux --install --directory /boot/syslinux "$boot"
 }
 
@@ -160,9 +186,9 @@ if [[ $debug ]]; then
 fi
 
 if [[ $update ]]; then
-  ln -rs "$dev" /tmp/$$
+  ln -rs "$dev" "$mntdir"
 else
-  mkdir -p /tmp/$$
+  mkdir -p "$mntdir"
   partition
   prepare_boot_device
   write_mbr
@@ -174,8 +200,13 @@ for module in "$@"; do
   [[ $clean ]] && module $module clean
   install_module $module
 done
-find /tmp/$$/
-cat /tmp/$$/boot/syslinux/syslinux.cfg
+
+if [[ $debug ]]; then
+  echo '# Contents of filesystem'
+  (cd "$mntdir" && find)
+  echo '# Bootloader configuration'
+  cat "$mntdir/boot/syslinux/syslinux.cfg"
+fi
 
 if [[ ! $update ]]; then
   install_bootloader

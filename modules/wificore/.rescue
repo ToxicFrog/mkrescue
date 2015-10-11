@@ -1,4 +1,4 @@
-source tinycore/common
+source $libdir/.libtinycore
 
 function describe() {
   echo -n "TinyCore Linux 6.1 (with wifi support)"
@@ -6,7 +6,7 @@ function describe() {
 
 function pre() {
   download_kernel
-  download_packages "modules/$module/tce/wificore.lst"
+  download_packages "$cachedir/tce/wificore.lst"
 }
 
 function dest() {

@@ -34,6 +34,7 @@ and it will download them but do nothing else.
       -i       -- device is an image file, automanage with losetup
       -l label -- give filesystem this label; default "rescue"
       -u       -- update already mounted stick, don't partition/format
+      -C dir   -- use dir as cache directory, default ~/.cache.mkrescue
       -c       -- tell the modules to "clean" themselves first
       -D       -- debug; print commands being executed
       -m cmd   -- execute command on all modules
@@ -76,7 +77,7 @@ Specifies the destination of the install. `destination` should be a device file,
 
     -i
 
-Indicates that the argument to `-d` is a whole disk image rather than a device file. The script will automatically use `losetup` to attach and detach it from loop devices as needed.
+Indicates that the argument to `-d` is a whole disk image rather than a device file. The script will automatically use `losetup` to attach and detach it from loop devices as needed. Note that it still needs to be run as root, unless your system permits mere mortals to use `losetup`.
 
     -u
 
@@ -88,9 +89,13 @@ When writing the FAT filesystem to the device, give it the label `label`. Labels
 
 Some modules need to know the label in order to write a correct boot configuration, so when using `-u` you should also use `-l` to specify the label of the filesystem being updated.
 
+    -C dir
+
+Use `dir` as the cache directory. This is where downloaded disc images and similar will be stored. The default is `~/.cache/mkrescue/`.
+
     -c
 
-Before installing each module, tell it to run its `clean` function. What exactly this means varies from module to module, but usually it involves deleting downloaded files and re-downloading them. To clean all modules without installing anything, use `./mkrescue -m clean all`.
+Before installing each module, tell it to run its `clean` function. Typically, this means deleting the entire cache directory, recreating it from the pristine module files, and then re-downloading anything that's missing. To clean all modules without installing anything, use `./mkrescue -m clean all`.
 
     -m command
 
@@ -98,12 +103,12 @@ Run `command` on the listed modules without doing anything. The only useful ones
 
     -D
 
-Enable debug mode; the script will print every command it executes. This is extremely spammy.
+Enable debug mode; the script will print every command it executes. This is extremely spammy. It will also list the contents of the boot directory and the contents of the syslinux configuration at the end.
 
 
 ## Adding new modules
 
-Adding small tools can be done directly in `boot/`; anything placed there will be copied to the stick when it's created. Make sure to update `boot/syslinux/syslinux.cfg` accordingly.
+Adding small tools can be done directly in `modules/.boot/`; anything placed there will be copied to the stick when it's created. Make sure to update `modules/.boot/syslinux/syslinux.cfg` accordingly.
 
 To add larger, optional modules, create a subdirectory in `modules/` and put all the module contents there. In that subdirectory, create a file, `.rescue`; this is a shell script that defines various functions used by the control script to set up the module.
 
@@ -111,6 +116,10 @@ At runtime, the functions in this file will have the following environment varia
 
  * `module`: the name of the currently executing module.
  * `label`: the filesystem label of the stick.
+ * `cachedir`: the cache directory. The contents of this will be copied onto the target.
+ * `tmpdir`: a temporary directory. It is shared among all modules and will be deleted at program exit.
+ * `bootdir`: the `/boot` directory on the target filesystem.
+ * `libdir`: the directory that the pristine, read-only versions of the modules are hosted in.
 
 They run in a subshell and may freely set or modify the environment without affecting the control script.
 
@@ -120,11 +129,11 @@ Except where noted, the default implementations of these functions do nothing an
 
     describe
 
-Outputs a brief description of the module on stdout (with no newline; use `echo -n` or similar). Called to generate help and status messages.
+Outputs a brief description of the module on stdout (with no newline; use `echo -n` or similar). Called to generate help and status messages. The default emits `<description missing>`.
 
     clean
 
-Deletes downloaded or intermediate files. Called when the user explicitly asks for a clean.
+Deletes downloaded or intermediate files. Called when the user explicitly asks for a clean. The default erases `$cachedir`.
 
     dest
 
@@ -133,6 +142,10 @@ Outputs a directory name on stdout; the contents of the module will be placed in
     pre
 
 Called just before installing the module. This is where code that, for example, downloads necessary files should go.
+
+    install
+
+Called to actually copy the module contents into `/boot`. The default copies `$cachedir/` into `$bootdir/$(dest)/`.
 
     boot
 
@@ -161,6 +174,10 @@ At runtime, it may (depending on user preference) also download components of th
 - Core Linux
 - Puppy Linux
 - OpenSUSE Linux
+
+And the following proprietary software:
+
+- Samsung SSD firmware installers
 
 It also contains HDAT2, released under a custom freeware license reproduced below:
 
