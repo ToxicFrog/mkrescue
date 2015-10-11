@@ -41,13 +41,15 @@ function die_happy() {
   exit 0
 }
 
+function init_cachedir() {
+  echo "Initializing cachedir: $cachedir"
+  mkdir -p "$cachedir"
+  rsync -urLt "$libdir/" "$cachedir/"
+}
+
 function module() {
   module=$1; shift
   bootdir="$mntdir/boot"
-  if [[ ! -d "$cachedir/$module" ]]; then
-    mkdir -p "$cachedir"
-    rsync -r "$libdir/$module/" "$cachedir/$module/"
-  fi
   (
     cachedir="$cachedir/$module"
     export module label cachedir tmpdir bootdir libdir
@@ -83,11 +85,13 @@ while true; do
     -C) cachedir="$1"; shift;;
     -m) shift; module_command="$1"; shift;;
     -l) shift; label="$1"; shift;;
-    -h) show_help=true; shift;;
+    -h|--help|-\?) show_help=true; shift;;
     -d) shift; dev="$1"; shift;;
     *) break;;
   esac
 done
+
+init_cachedir
 
 if [[ $show_help ]]; then
   help
