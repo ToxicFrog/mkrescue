@@ -7,13 +7,11 @@ function download_kernel() {
   mkdir -p "$tmpdir/tinycore"
   [[ -f "$cachedir/vmlinuz" ]] || {
     echo "  -> kernel"
-    wget -nv -nc -P "$tmpdir" "$DIST/vmlinuz"
-    cp "$tmpdir/vmlinuz" "$cachedir"
+    download "$DIST/vmlinuz" "$cachedir/vmlinuz"
   }
   [[ -f "$cachedir/core.gz" ]] || {
     echo "  -> initrd"
-    wget -nv -nc -P "$tmpdir" "$DIST/core.gz"
-    cp "$tmpdir/core.gz" "$cachedir"
+    download "$DIST/core.gz" "$cachedir/core.gz"
   }
 }
 
@@ -23,14 +21,12 @@ function download_package() {
   local dst="$cachedir/tce/optional"
   local tmp="$tmpdir/tinycore/tcz"
 
-  [[ -f "$dst/$package" ]] && return 0;
   echo "$indent  -> $package"
-  wget -q -nc -P "$tmp" "$TCZ/$package"{,.md5.txt}
-  cp -f "$tmp/$package"{,.md5.txt} "$dst/"
+  download "$TCZ/$package" "$dst/$package"
+  download "$TCZ/$package.md5.txt" "$dst/$package.md5.txt"
 
-  if wget -q -nc -P "$tmp" "$TCZ/$package.dep" >/dev/null; then
-    cp -f "$tmp/$package.dep" "$dst/"
-    for dep in $(cat "$tmp/$package.dep"); do
+  if download "$TCZ/$package.dep" "$dst/$package.dep"; then
+    for dep in $(cat "$dst/$package.dep"); do
       download_package "$dep" "  $indent"
     done
   fi

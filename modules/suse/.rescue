@@ -5,12 +5,12 @@ function describe() {
 }
 
 function pre() {
-  status "Downloading OpenSUSE netinstaller (32-bit)"
-  wget -nv -c -O "$cachedir/linux32" "$SUSE/boot/i386/loader/linux"
-  wget -nv -c -O "$cachedir/initrd32" "$SUSE/boot/i386/loader/initrd"
-  status "Downloading OpenSUSE netinstaller (64-bit)"
-  wget -nv -c -O "$cachedir/linux64" "$SUSE/boot/x86_64/loader/linux"
-  wget -nv -c -O "$cachedir/initrd64" "$SUSE/boot/x86_64/loader/initrd"
+  status "Checking boot files (32-bit)"
+  download "$SUSE/boot/i386/loader/linux" "$cachedir/linux32"
+  download "$SUSE/boot/i386/loader/initrd" "$cachedir/initrd32"
+  status "Checking boot files (64-bit)"
+  download "$SUSE/boot/x86_64/loader/linux" "$cachedir/linux64"
+  download "$SUSE/boot/x86_64/loader/initrd" "$cachedir/linux64"
 }
 
 function boot() {

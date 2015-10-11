@@ -15,7 +15,7 @@ function pre() {
   && -f "$cachedir/puppy_tahr_6.0.sfs"
   && -f "$cachedir/zdrv_tahr_6.0.sfs" ]] && return 0
   status "Downloading Puppy 6.0 ISO"
-  wget -c -O "$tmpdir/puppy-6.0.iso" "http://distro.ibiblio.org/puppylinux/puppy-tahr/iso/tahrpup%20-6.0-CE/tahr-6.0-CE_PAE.iso"
+  download "http://distro.ibiblio.org/puppylinux/puppy-tahr/iso/tahrpup%20-6.0-CE/tahr-6.0-CE_PAE.iso" "$tmpdir/puppy-6.0.iso"
   status "Extracting boot files"
   isoextract "$tmpdir/puppy-6.0.iso" initrd.gz vmlinuz puppy_tahr_6.0.sfs zdrv_tahr_6.0.sfs
 }

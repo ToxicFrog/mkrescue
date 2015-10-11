@@ -28,6 +28,13 @@ function status() {
   echo "[$module] $*"
 }
 
+function download() {
+  [[ -f "$2" ]] && return 0;
+  name="$(basename $2)"
+  wget -nv -nc -O "$tmpdir/$name.dl" "$1" || return 1;
+  mv "$tmpdir/$name.dl" "$2"
+}
+
 function cleanup() {
   mount | fgrep -q "$mntdir" && umount "$mntdir"
   if [[ $image_file ]]; then

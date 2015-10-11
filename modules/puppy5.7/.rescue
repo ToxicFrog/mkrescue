@@ -14,7 +14,7 @@ function pre() {
   && -f "$cachedir/initrd.gz"
   && -f "$cachedir/puppy_slacko_5.7.sfs" ]] && return 0
   status "Downloading Puppy 5.7 ISO"
-  wget -c -O "$tmpdir/puppy-5.7.iso" "http://distro.ibiblio.org/puppylinux/puppy-slacko-5.7/slacko-5.7-NO-pae.iso"
+  download "http://distro.ibiblio.org/puppylinux/puppy-slacko-5.7/slacko-5.7-NO-pae.iso" "$tmpdir/puppy-5.7.iso"
   status "Extracting boot files"
   isoextract "$tmpdir/puppy-5.7.iso" initrd.gz vmlinuz puppy_slacko_5.7.sfs
 }
