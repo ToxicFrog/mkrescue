@@ -23,13 +23,12 @@ function download_package() {
 
   echo "$indent  -> $package"
   download "$TCZ/$package" "$dst/$package"
-  download "$TCZ/$package.md5.txt" "$dst/$package.md5.txt"
+  download "$TCZ/$package.md5.txt" "$dst/$package.md5.txt" --silent
 
-  if download "$TCZ/$package.dep" "$dst/$package.dep"; then
-    for dep in $(cat "$dst/$package.dep"); do
-      download_package "$dep" "  $indent"
-    done
-  fi
+  download "$TCZ/$package.dep" "$dst/$package.dep" --silent || touch "$dst/$package.dep"
+  for dep in $(cat "$dst/$package.dep"); do
+    download_package "$dep" "  $indent"
+  done
 }
 
 function download_packages() {

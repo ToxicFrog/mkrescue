@@ -22,8 +22,8 @@ function clean() {
 function pre() { return 0; }
 function dest() { echo "$module"; }
 function install() {
-  status "Installing into $bootdir/$(module $module dest)/"
-  rsync -rL "$cachedir/" "$bootdir/$(module $module dest)/"
+  status "Installing into $bootdir/$(dest)/"
+  rsync -rL "$cachedir/" "$bootdir/$(dest)/"
 }
 function boot() { return 0; }
 function post() { return 0; }
@@ -33,10 +33,12 @@ function status() {
 }
 
 function download() {
-  [[ -f "$2" ]] && return 0;
-  name="$(basename $2)"
-  wget -nv -nc -O "$tmpdir/$name.dl" "$1" || return 1;
-  mv "$tmpdir/$name.dl" "$2"
+  local src="$1"; shift
+  local dst="$1"; shift
+  [[ -f "$dst" ]] && return 0;
+  name="$(basename $dst)"
+  curl --continue-at - --fail --progress-bar --output "$tmpdir/$name.dl" "$@" "$src" || return 1;
+  mv "$tmpdir/$name.dl" "$dst"
 }
 
 function cleanup() {
