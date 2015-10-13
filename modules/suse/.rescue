@@ -15,24 +15,26 @@ function pre() {
 
 function boot() {
   cat <<EOF
-label susenet32
-  menu label OpenSUSE Network Installer (32-bit)
-  kernel /boot/suse/linux32
-  append initrd=/boot/suse/initrd32 showopts
+menu begin OpenSUSE Tumbleweed
+  label susenet32
+    menu label Network Installer (32-bit)
+    kernel /boot/suse/linux32
+    append initrd=/boot/suse/initrd32 showopts
 
-label susenet64
-  menu label OpenSUSE Network Installer (64-bit)
-  kernel /boot/suse/linux64
-  append initrd=/boot/suse/initrd64 showopts
+  label susenet64
+    menu label Network Installer (64-bit)
+    kernel /boot/suse/linux64
+    append initrd=/boot/suse/initrd64 showopts
 
-label susenet32rescue
-  menu label OpenSUSE Network Rescue Mode (32-bit)
-  kernel /boot/suse/linux32
-  append initrd=/boot/suse/initrd32 showopts rescue=1
+  label susenet32rescue
+    menu label Network Rescue Mode (32-bit)
+    kernel /boot/suse/linux32
+    append initrd=/boot/suse/initrd32 showopts rescue=1
 
-label susenet64rescue
-  menu label OpenSUSE Network Rescue Mode (64-bit)
-  kernel /boot/suse/linux64
-  append initrd=/boot/suse/initrd64 showopts rescue=1
+  label susenet64rescue
+    menu label Network Rescue Mode (64-bit)
+    kernel /boot/suse/linux64
+    append initrd=/boot/suse/initrd64 showopts rescue=1
+menu end
 EOF
 }
