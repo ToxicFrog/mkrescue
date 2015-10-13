@@ -3,22 +3,25 @@ This is a collection of useful tools for system recovery and whatnot. It is not 
 It comes with a script, `mkrescue`, which will automatically partition, format, and install syslinux on a flash drive or disk image, then copy these tools and an appropriate syslinux configuration to it.
 
 The "core" contains:
-- memtest86+
-- x86test
-- Hardware Detection Tool
-- FreeDOS
-- HDAT2
+
+ * memtest86+
+ * x86test
+ * Hardware Detection Tool
+ * FreeDOS
+ * HDAT2
 
 This weighs in at about 3MB, suitable even for tiny USB sticks and flash cards.
 
 As optional modules, you can also install:
-- MicroCore Linux 6.1 (10MB)
-- TinyCore Linux 6.1 (16MB)
-- TinyCore Linux 6.1 + wifi support (61MB)
-- CorePlus Linux Installer 6.1 (75MB)
-- OpenSUSE Tumbleweed network installer & rescue disk (117MB)
-- Puppy Linux "Slacko" 5.7 (161MB)
-- Puppy Linux "Tahrpup" 6.0 (199MB)
+
+ * `samsung-ssd` Firmware updates for Samsung SSDs (10MB)
+ * `microcore` MicroCore Linux 6.1 (10MB)
+ * `tinycore` TinyCore Linux 6.1 (16MB)
+ * `wificore` TinyCore Linux 6.1 + wifi support (61MB)
+ * `coreplus` CorePlus Linux Installer 6.1 (75MB)
+ * `suse` OpenSUSE Tumbleweed network installer & rescue disk (117MB)
+ * `puppy5.7` Puppy Linux "Slacko" 5.7 (161MB)
+ * `puppy6.0` Puppy Linux "Tahrpup" 6.0 (199MB)
 
 These modules will download additional components the first time they're installed, so make sure you have a net connection. If you want to pre-download these components for later use, run:
 

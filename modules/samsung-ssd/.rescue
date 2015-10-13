@@ -1,0 +1,50 @@
+HOST="www.samsung.com"
+BASEURL="/global/business/semiconductor/minisite/SSD/global/html/support/"
+
+function describe() {
+  echo -n "Samsung SSD firmware updaters"
+}
+
+function pre() {
+  status "Downloading SSD firmware index"
+  download "$HOST/$BASEURL/downloads.html" "$tmpdir/ssd.lst"
+  status "Downloading SSD firmware images"
+  for href in $(cat "$tmpdir/ssd.lst" | egrep -o 'href="[^"]+"' | grep iso | cut -d\" -f2); do
+    local url="$HOST/$BASEURL/$href"
+    if echo "$href" | egrep -q '^/'; then
+      # absolute url
+      local url="$HOST/$href"
+    fi
+    # We have some ugly URL normalization here.
+    # The $href may contain '..'.
+    # But in URLs, or at least on the Samsung server, "foo/bar///../baz" isn't "foo/baz"
+    # -- it's "foo/bar//baz"! The .. strips off a / rather than a directory!
+    # So we can't just staple URL elements together using /, because if we doubled up
+    # slashes and the URL contains '..', we just broke everything.
+    # So we run it through sed to turn runs of / into single /, and then stick the
+    # http:// on the end afterwards.
+    local url="http://$(echo "$url" | sed -r -e 's_/+_/_g')"
+    local name="$(basename $href)"
+    local name="${name%.iso}"
+    echo " -> $name"
+    [[ -f "$cachedir/$name.img.gz" ]] && continue;
+    download "$url" "$tmpdir/$name.iso"
+    isoinfo -R -i "$tmpdir/$name.iso" -x "/ISOLINUX/BTDSK.IMG" | gzip > "$cachedir/$name.img.gz"
+  done
+}
+
+function boot() {
+  echo "menu begin Samsung SSD Firmware"
+  for image in "$cachedir/"*.img.gz; do
+    local file="$(basename $image)"
+    local file="${file%.img.gz}"
+    local name="${file//_/ }"
+    cat <<EOF
+  label samsung_ssd_$file
+    menu label $name
+    kernel /boot/syslinux/memdisk
+    initrd /boot/samsung-ssd/$file.img.gz
+EOF
+  done
+  echo "menu end"
+}
