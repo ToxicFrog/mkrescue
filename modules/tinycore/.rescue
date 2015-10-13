@@ -5,6 +5,7 @@ function describe() {
 }
 
 function pre() {
+  > "$tmpdir/corelinux.boot"
   download_kernel
   download_packages "$cachedir/tce/tinycore.lst"
 }
@@ -13,10 +14,10 @@ function dest() {
   echo "core"
 }
 
-function boot() {
-  cat <<EOF
+function post() {
+  >> "$bootdir/core/syslinux.cfg" cat <<EOF
 label tinycore
-  menu label TinyCore Linux 6.1
+  menu label TinyCore 6.1
   kernel /boot/core/vmlinuz
   append initrd=/boot/core/core.gz tce=LABEL=$label/boot/core/tce lst=tinycore.lst waitusb=5
 EOF

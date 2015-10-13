@@ -5,6 +5,7 @@ function describe() {
 }
 
 function pre() {
+  > "$tmpdir/corelinux.boot"
   download_kernel
   download_packages "$cachedir/tce/coreplus.lst"
 }
@@ -13,10 +14,10 @@ function dest() {
   echo "core"
 }
 
-function boot() {
-  cat <<EOF
+function post() {
+  >> "$bootdir/core/syslinux.cfg" cat <<EOF
 label coreplus
-  menu label CorePlus installer for TinyCore Linux 6.1
+  menu label CorePlus 6.1 Installer
   kernel /boot/core/vmlinuz
   append initrd=/boot/core/core.gz tce=LABEL=$label/boot/core/tce lst=coreplus.lst waitusb=5
 EOF

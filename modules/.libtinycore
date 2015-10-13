@@ -39,3 +39,9 @@ function download_packages() {
     download_package "$package" ""
   done
 }
+
+function boot() {
+  [[ -f "$tmpdir/corelinux.boot.written" ]] && return 0;
+  echo "include /boot/core/syslinux.cfg TinyCore Linux"
+  touch "$tmpdir/corelinux.boot.written"
+}
