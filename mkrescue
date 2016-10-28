@@ -104,6 +104,9 @@ while true; do
   esac
 done
 
+mkdir -p "$tmpdir"
+mkdir -p "$cachedir"
+
 init_cachedir
 
 if [[ $show_help ]]; then
@@ -146,9 +149,6 @@ EOF
 
 echo -n "Press enter..."
 read
-
-mkdir -p "$tmpdir"
-mkdir -p "$cachedir"
 
 function partition() {
   echo "Editing partition table"
