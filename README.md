@@ -19,7 +19,6 @@ As optional modules, you can also install:
  * `tinycore` TinyCore Linux 6.1 (16MB)
  * `wificore` TinyCore Linux 6.1 + wifi support (61MB)
  * `coreplus` CorePlus Linux Installer 6.1 (75MB)
- * `suse` OpenSUSE Tumbleweed network installer & rescue disk (117MB)
  * `puppy5.7` Puppy Linux "Slacko" 5.7 (161MB)
  * `puppy6.0` Puppy Linux "Tahrpup" 6.0 (199MB)
 
