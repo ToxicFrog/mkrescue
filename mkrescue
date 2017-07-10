@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Set up a rescue USB stick.
 # Partition it as one large partition, vfat, with a /boot directory containing
